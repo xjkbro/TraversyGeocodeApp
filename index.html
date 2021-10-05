@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Maps Geocode App</title>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAaQLBcOqiNG5-2uVKj3yQ7FiedPjU_lLs&libraries=places&sensor=false"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" integrity="sha512-894YE6QWD5I59HgZOGReFYm4dnWc1Qt5NtvYSaNcOP+u1T9qYdvdihz0PPSiiqn/+/3e7Jo4EaG7TubfWGUrMQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+</head>
+<body>
+    <div class="container">
+        <h3>Enter Location: </h3>
+        <form id="inputAddy">
+            <input type="text" id="streetaddress">
+            <br>
+            <input type="text" id="zip">
+            <br>
+            <input type="text" id="city">
+            <br>
+            <input type="text" id="state">
+            <br>
+            <input type="text" id="province">
+            <br>
+            <input type="text" id="country">
+            <br>
+
+        </form>
+        <div id="format-address"></div>
+        <div id="component-address"></div>
+
+    </div>
+
+    <script>
+        $(document).ready(function(){
+            google.maps.event.addDomListener(window, 'load', initialize);
+            function initialize() {
+                var autocomplete = new google.maps.places.Autocomplete(document.getElementById('streetaddress'));
+                google.maps.event.addListener(autocomplete, 'place_changed', function () {
+                    // Get the place details from the autocomplete object.
+                    var place = autocomplete.getPlace();
+                    //Location details
+                    for (var i = 0; i < place.address_components.length; i++) {
+                        if(place.address_components[i].types[0] == 'street_number'){
+                            var billing_street_number = place.address_components[i].long_name;
+                        }
+                        if(place.address_components[i].types[0] == 'route'){
+                            var billing_street_name = place.address_components[i].short_name;
+                        }
+                        var billing_address1 = billing_street_number + " " + billing_street_name;
+                        $('#streetaddress').val(billing_address1);
+                        if(place.address_components[i].types[0] == 'postal_code'){
+                            var billing_zip_code = place.address_components[i].long_name;
+                            $('#zip').val(billing_zip_code);
+                        }
+                        if(place.address_components[i].types[0] == 'locality' || place.address_components[i].types[0] == 'sublocality_level_1' || place.address_components[i].types[0] == 'sublocality' || place.address_components[i].types[0] == 'political'){
+                            // var billing_city = place.address_components[i].long_name;
+                            var billing_city = place.vicinity;
+                            $('#city').val(billing_city);
+                        }
+                        if(place.address_components[i].types[0] == 'administrative_area_level_1'){
+                            var billing_state_short = place.address_components[i].short_name;
+                            $('#state').val(billing_state_short);
+                            $('#province').val(billing_state_short);
+                        }
+                        if(place.address_components[i].types[0] == 'country'){
+                            var billing_country = place.address_components[i].short_name;
+                            var billing_country_long = place.address_components[i].long_name;
+                            if(billing_country == 'US'){
+                                billing_country = 'USA';
+                            }
+                            if(billing_country == 'USA' || billing_country == 'MX' || billing_country == 'CA')
+                                $('#country').val(billing_country);
+                            else
+                                $('#country').val("");
+                        }
+                    }
+
+                    $( "#hidden" ).removeClass( "ds-none" );
+                    getAddy();
+                    // $( "#noticeAddy" ).addClass( "ds-none" );
+                    // $('#inputAddy').change(function() {
+                    //     $('#streetaddress').blur();
+                    // })
+                });
+            }
+        });
+        function getAddy(){
+            // let location='3304 Royal Bay Dr Las Vegas NV';
+            let location = $('#streetaddress').val();
+            axios.get('https://maps.googleapis.com/maps/api/geocode/json', {
+                params: {
+                    address: location,
+                    key: 'AIzaSyAaQLBcOqiNG5-2uVKj3yQ7FiedPjU_lLs'
+                }
+            }).then(function(res){
+                console.log(res);
+                // Formatted Address
+                let format = res.data.results[0].formatted_address;
+                
+                //Address Components
+                let addressComponents = res.data.results[0].address_components;
+
+
+                let addyOutput = "<div class='container'>";
+                for(let i = 0; i < addressComponents.length; i++) {
+                    addyOutput += `<div>${addressComponents[i].types[0]}: ${addressComponents[i].long_name}</div>`
+                }
+                addyOutput += "</div>";
+
+
+                let addyComp = {};
+                for(let i = 0; i < addressComponents.length; i++) {
+                    let key = addressComponents[i].types[0];
+                    let value = addressComponents[i].short_name;
+                    addyComp[key] = value;
+                }
+                console.log(addyComp)
+
+                // Create Final Address for input fields
+                let finalAddress = {}
+
+                if(addyComp.street_number)
+                    finalAddress['streetAddress'] = addyComp.street_number + ' ' + addyComp.route;
+                finalAddress['zipCode'] = addyComp.postal_code;
+                finalAddress['country'] = addyComp.country =='US' ? 'USA' : addyComp.country;
+                finalAddress['city'] = addyComp.locality;
+
+                finalAddress['state'] = addyComp.administrative_area_level_1;
+                finalAddress['province'] = addyComp.administrative_area_level_1;
+
+                    
+                // Connect to Dom
+                $('#format-address').html(format);
+                $('#component-address').html(addyOutput);
+
+                $('#streetaddress').val(finalAddress['streetAddress']);
+                $('#zip').val(finalAddress['zipCode']);
+                $('#city').val(finalAddress['city']);
+                $('#state').val(finalAddress['state']);
+                $('#province').val(finalAddress['province']);
+                $('#country').val(finalAddress['country']);
+
+            }).catch(function(err){
+                console.log(err);
+            })
+
+        }
+
+        $('#streetaddress').blur(function(){
+
+            console.log('hello');
+            getAddy();
+        })
+    </script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js" integrity="sha384-IQsoLXl5PILFhosVNubq5LC7Qb9DXgDA9i+tQ8Zj3iwWAwPtgFTxbJ8NT4GN1R8p" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.min.js" integrity="sha384-cVKIPhGWiC2Al4u+LWgxfKTRIcfu0JTxR+EQDz/bgldoEyl4H0zUF0QKbrJ0EcQF" crossorigin="anonymous"></script>
+</body>
+</html>
