@@ -35,6 +35,7 @@
     </div>
 
     <script>
+        let index=0;
         $(document).ready(function(){
             google.maps.event.addDomListener(window, 'load', initialize);
             function initialize() {
@@ -152,7 +153,7 @@
 
         $('#streetaddress').blur(function(){
 
-            console.log('hello');
+            console.log('hello ' + index++);
             getAddy();
         })
     </script>
